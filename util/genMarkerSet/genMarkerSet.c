@@ -100,7 +100,7 @@ static int              gCapturing = 0;
 //static int              gCapturingMarker = -1;
 static int              gShowHelp = 1;
 static int              gShowMode = 1;
-
+int                    _auto = 0;
 static char             exitcode = -1;
 #define EXIT(c) {exitcode=c;exit(c);}
 
@@ -126,6 +126,7 @@ int main( int argc, char *argv[] )
     argSetDispFunc( dispFunc, 0 );
     argSetKeyFunc( keyEvent );
     //argSetMouseFunc( mouseEvent );
+    arSetLabelingMode(gARHandle, AR_LABELING_WHITE_REGION);
     argMainLoop();
     return (0);
 }
@@ -182,6 +183,8 @@ static int init( int argc, char *argv[] )
             } else if (strncmp(argv[i], "-dpi=", 5) == 0) {
                 if (sscanf(&(argv[i][5]), "%f", &tempF) == 1 && tempF > 0.0f) dpi = tempF;
                 else ARLOGe("Error: argument '%s' to -dpi= invalid.\n", argv[i]);
+            }else if (strncmp(argv[i], "-auto",5) == 0) {
+                 _auto = 1;
             } else {
                 if (!inputFilePath) inputFilePath = strdup(argv[i]);
                 else usage(argv[0]);
@@ -320,7 +323,7 @@ static int init( int argc, char *argv[] )
     cparamLT = arParamLTCreate( &cparam, AR_PARAM_LT_DEFAULT_OFFSET );
     gARHandle = arCreateHandle( cparamLT );
     arSetDebugMode( gARHandle, AR_DEBUG_ENABLE );
-    arSetLabelingMode( gARHandle, AR_LABELING_BLACK_REGION );
+    arSetLabelingMode( gARHandle, AR_LABELING_WHITE_REGION );
     arSetLabelingThresh( gARHandle, THRESH );
     arSetImageProcMode( gARHandle, AR_IMAGE_PROC_FRAME_IMAGE );
     arSetMarkerExtractionMode( gARHandle, AR_NOUSE_TRACKING_HISTORY );
@@ -513,7 +516,7 @@ static void dispFunc( void )
     float   trans1[3][4];
     float   mx1, my1, mx2, my2;
     //static int r = 0;
-
+    if(_auto)gCapturing=1;
     glClear(GL_COLOR_BUFFER_BIT);
 
     if (!gCapturing) {
@@ -610,17 +613,24 @@ static void dispFunc( void )
         argDrawLineByIdealPos(gARHandle->markerInfo[jj].vertex[2][0], gARHandle->markerInfo[jj].vertex[2][1], gARHandle->markerInfo[jj].pos[0], gARHandle->markerInfo[jj].pos[1]);
         
         argSwapBuffers();
-
+        if(_auto)printf("auto mode ENABLED");
+        else printf("auto mode disabled");
         flag[ii] = 0;
-        for(;;) {
-            printf("Save this marker? (y or n): ");
-            if (!fgets(buf, sizeof(buf), stdin)) {
-                ret = -1;
-                goto done;
+        if(!_auto){
+            for(;;) {
+                printf("Save this marker? (y or n): ");
+                if (!fgets(buf, sizeof(buf), stdin)) {
+                    ret = -1;
+                    goto done;
+                }
+                if (buf[0] == 'y' || buf[0] == 'n') break;
             }
-            if (buf[0] == 'y' || buf[0] == 'n') break;
+            if( buf[0] == 'n' ) continue;
+        }else{
+            keyEvent(' ',0,0);
+            buf[0] = 'y';
         }
-        if( buf[0] == 'n' ) continue;
+
         flag[ii] = 1;
         co++;
 

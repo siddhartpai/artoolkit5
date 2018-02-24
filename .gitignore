@@ -37,7 +37,7 @@ AndroidStudioProjects/**/.idea/
 *.user
 *.userosscache
 *.sln.docstates
-
+.vscode
 # Xcode
 xcuserdata/
 *.mode1*
